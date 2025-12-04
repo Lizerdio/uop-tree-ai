@@ -1,42 +1,37 @@
-from flask import Flask, request, jsonify
-from joblib import load
+from fastapi import FastAPI
+from pydantic import BaseModel
+import joblib
 import pandas as pd
-from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)
+model = joblib.load("tree_benefit_predictor_final.joblib")
 
-model = load("tree_benefit_predictor_final.joblib")
+app = FastAPI(title="UOP Tree Benefit Predictor 🌳")
 
-benefit_names = [
-	"Gross Carbon Sequestration (lb/yr)",
-	"Avoided Runoff (gal/yr)",
-	"Pollution Removal (oz/yr)",
-	"Oxygen Production (lb/yr)",
-	"Total Annual Benefits ($/yr)"
-]
+class TreeInput(BaseModel):
+	species: str
+	dbh: float
+	height: float
 
-@app.route("/", methods=["GET"])
+@app.get("/")
 def home():
-	return jsonify({"status": "Tree Benefit AI Model is running 🌳"})
+	return {"message": "🌿 UOP Tree Benefit Predictor API is running!"}
 
-@app.route("/predict", methods=["POST"])
-def predict():
-	try:
-		data = request.get_json(force=True)
-		df = pd.DataFrame([{
-			"Species Name": data.get("species"),
-			"DBH (in)": float(data.get("dbh")),
-			"Height (ft)": float(data.get("height"))
-		}])
-		pred = model.predict(df)[0]
-		results = dict(zip(benefit_names, [float(x) for x in pred]))
-		return jsonify({
-			"species": data.get("species"),
-			"dbh": data.get("dbh"),
-			"height": data.get("height"),
-			"predicted_benefits": results
-		})
+@app.post("/predict")
+def predict(tree: TreeInput):
+	data = pd.DataFrame([{
+		"Species Name": tree.species,
+		"DBH (in)": tree.dbh,
+		"Height": tree.height
+	}])
+	preds = model.predict(data)[0]
+	return {
+		"Gross Carbon Sequestration (lb/yr)": round(preds[0], 3),
+		"Avoided Runoff (gal/yr)": round(preds[1], 3),
+		"Pollution Removal (oz/yr)": round(preds[2], 3),
+		"Oxygen Production (lb/yr)": round(preds[3], 3),
+		"Total Annual Benefits ($/yr)": round(preds[4], 2)
+	}
+
 	except Exception as e:
 		return jsonify({"error": str(e)}), 400
 
