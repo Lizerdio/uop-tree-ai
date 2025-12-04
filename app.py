@@ -23,7 +23,7 @@ def predict(tree: TreeInput):
 		data = pd.DataFrame([{
 			"Species Name": tree.species,
 			"DBH (in)": tree.dbh,
-			"Height (ft)": tree.height
+			"Height": tree.height
 		}])
 		preds = model.predict(data)[0]
 		return {
