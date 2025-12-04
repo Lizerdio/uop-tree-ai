@@ -3,10 +3,20 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 model = joblib.load("tree_benefit_predictor_final.joblib")
 
 app = FastAPI(title="UOP Tree Benefit Predictor")
+
+app.add_middleware(
+	CORSMiddleware,
+	allow_origins=["https://lizerdio.github.io"],
+	allow_credentials=True,
+	allow_methods=["*"],
+	allow_headers=["*"],
+)
+
 
 class TreeInput(BaseModel):
 	species: str
